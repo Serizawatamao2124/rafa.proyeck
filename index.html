@@ -692,7 +692,10 @@
         .kasir-container {
             display: flex;
             gap: 20px;
-            height: calc(100vh - 200px);
+            /* Menggunakan viewport height agar pas di layar desktop/laptop tanpa scroll window utama */
+            height: calc(100vh - 150px);
+            min-height: 500px;
+            overflow: hidden; /* Mencegah overflow keluar container */
         }
 
         .menu-kasir {
@@ -701,7 +704,9 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Penting agar child yang scroll */
         }
 
         .keranjang-kasir {
@@ -709,17 +714,24 @@
             min-width: 320px;
             background-color: white;
             border-radius: 10px;
-            padding: 15px;
+            padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .menu-kasir-header {
+            flex-shrink: 0;
+            margin-bottom: 10px;
         }
 
         .menu-categories-kasir {
             display: flex;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
 
         .category-btn-kasir {
@@ -730,6 +742,7 @@
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s ease;
+            font-size: 14px;
         }
 
         .category-btn-kasir.active {
@@ -739,18 +752,25 @@
 
         .menu-items-kasir {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 15px;
+            overflow-y: auto; /* Scrollable area */
+            flex: 1;
+            padding-right: 5px; /* Space for scrollbar */
+            padding-bottom: 10px;
         }
 
         .menu-item-kasir {
             background-color: #f9f9f9;
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
 
         .menu-item-kasir img {
@@ -768,33 +788,52 @@
         }
 
         .menu-item-kasir h4 {
-            margin-bottom: 5px;
             font-size: 14px;
+            margin-bottom: auto; /* Push price to bottom */
+            line-height: 1.3;
         }
 
         .menu-item-kasir .price {
             font-weight: bold;
             color: #e63946;
-            font-size: 13px;
+            font-size: 14px;
+            margin-top: 8px;
         }
 
         .menu-item-kasir:hover .price {
             color: white;
+        }
+        
+        /* Custom Scrollbar for cleaner look */
+        .menu-items-kasir::-webkit-scrollbar,
+        .keranjang-items::-webkit-scrollbar {
+            width: 6px;
+        }
+        .menu-items-kasir::-webkit-scrollbar-track,
+        .keranjang-items::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .menu-items-kasir::-webkit-scrollbar-thumb,
+        .keranjang-items::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
         }
 
         .keranjang-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
+            flex-shrink: 0;
         }
 
         .keranjang-items {
             flex: 1;
             overflow-y: auto;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            padding-right: 5px;
         }
 
         .keranjang-item {
@@ -851,10 +890,14 @@
             font-size: 14px;
         }
 
-        .keranjang-total {
-            margin-top: 20px;
+        .keranjang-footer {
+            flex-shrink: 0;
+            border-top: 1px solid #eee;
             padding-top: 15px;
-            border-top: 2px solid #eee;
+        }
+
+        .keranjang-total {
+            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             font-size: 18px;
@@ -862,7 +905,6 @@
         }
 
         .keranjang-actions {
-            margin-top: 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -1704,14 +1746,16 @@
                     <h2>Kasir - Sistem Pemesanan</h2>
                     <div class="kasir-container">
                         <div class="menu-kasir">
-                            <div class="search-container">
-                                <input type="text" id="searchMenuKasir" class="search-input" placeholder="Cari menu...">
-                            </div>
-                            <div class="menu-categories-kasir">
-                                <button class="category-btn-kasir active" data-category="all">Semua</button>
-                                <button class="category-btn-kasir" data-category="makanan">Makanan</button>
-                                <button class="category-btn-kasir" data-category="minuman">Minuman</button>
-                                <button class="category-btn-kasir" data-category="tambahan">Tambahan</button>
+                            <div class="menu-kasir-header">
+                                <div class="search-container">
+                                    <input type="text" id="searchMenuKasir" class="search-input" placeholder="Cari menu...">
+                                </div>
+                                <div class="menu-categories-kasir">
+                                    <button class="category-btn-kasir active" data-category="all">Semua</button>
+                                    <button class="category-btn-kasir" data-category="makanan">Makanan</button>
+                                    <button class="category-btn-kasir" data-category="minuman">Minuman</button>
+                                    <button class="category-btn-kasir" data-category="tambahan">Tambahan</button>
+                                </div>
                             </div>
                             <div class="menu-items-kasir" id="menuItemsKasir">
                                 <!-- Menu items will be inserted here by JavaScript -->
@@ -1725,30 +1769,33 @@
                             <div class="keranjang-items" id="keranjangItemsKasir">
                                 <!-- Cart items will be inserted here -->
                             </div>
-                            <!-- Payment & Discount Options -->
-                            <div style="padding: 10px 0; border-top: 1px solid #eee;">
-                                <div class="form-group" style="margin-bottom: 10px;">
-                                    <label style="font-size: 12px;">Diskon (%)</label>
-                                    <input type="number" id="cartDiscount" value="0" min="0" max="100" style="padding: 5px;">
+                            
+                            <div class="keranjang-footer">
+                                <!-- Payment & Discount Options -->
+                                <div style="margin-bottom: 15px;">
+                                    <div class="form-group" style="margin-bottom: 10px;">
+                                        <label style="font-size: 12px;">Diskon (%)</label>
+                                        <input type="number" id="cartDiscount" value="0" min="0" max="100" style="padding: 5px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 12px;">Metode Pembayaran</label>
+                                        <select id="paymentMethod" style="padding: 5px;">
+                                            <option value="Cash">Tunai</option>
+                                            <option value="QRIS">QRIS</option>
+                                            <option value="Transfer">Transfer Bank</option>
+                                            <option value="E-Wallet">E-Wallet</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group" style="margin-bottom: 10px;">
-                                    <label style="font-size: 12px;">Metode Pembayaran</label>
-                                    <select id="paymentMethod" style="padding: 5px;">
-                                        <option value="Cash">Tunai</option>
-                                        <option value="QRIS">QRIS</option>
-                                        <option value="Transfer">Transfer Bank</option>
-                                        <option value="E-Wallet">E-Wallet</option>
-                                    </select>
+                                <div class="keranjang-total">
+                                    <span>Total:</span>
+                                    <span id="keranjangTotalKasir">Rp 0</span>
                                 </div>
-                            </div>
-                            <div class="keranjang-total">
-                                <span>Total:</span>
-                                <span id="keranjangTotalKasir">Rp 0</span>
-                            </div>
-                            <div class="keranjang-actions">
-                                <button class="btn-kasir btn-kasir-primary" id="checkoutKasir"><i class="fas fa-credit-card"></i> Bayar Sekarang</button>
-                                <button class="btn-kasir btn-kasir-secondary" id="saveOrderKasir">Simpan Pesanan</button>
-                                <button class="btn-kasir btn-kasir-primary" id="showQRCode">Bayar dengan QR Code</button>
+                                <div class="keranjang-actions">
+                                    <button class="btn-kasir btn-kasir-primary" id="checkoutKasir"><i class="fas fa-credit-card"></i> Bayar Sekarang</button>
+                                    <button class="btn-kasir btn-kasir-secondary" id="saveOrderKasir">Simpan Pesanan</button>
+                                    <button class="btn-kasir btn-kasir-primary" id="showQRCode">Bayar dengan QR Code</button>
+                                </div>
                             </div>
                         </div>
                     </div>
