@@ -1614,8 +1614,14 @@
                     <textarea id="menuDescription" placeholder="Masukkan deskripsi menu" rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="menuImage">Gambar Menu (URL)</label>
-                    <input type="text" id="menuImage" placeholder="Masukkan URL gambar">
+                    <label>Gambar Menu</label>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                        <input type="file" id="menuImageFile" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-small" onclick="document.getElementById('menuImageFile').click()">Pilih File</button>
+                        <span id="menuImageFileName" style="font-size: 12px; color: #666;">Tidak ada file dipilih</span>
+                    </div>
+                    <input type="hidden" id="menuImage">
+                    <img id="menuImagePreview" src="" style="max-width: 100px; max-height: 100px; display: none; border-radius: 5px; border: 1px solid #ddd; margin-top: 10px;">
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">Tambah Menu</button>
             </form>
@@ -1648,8 +1654,14 @@
                     <input type="number" id="editMenuPrice" required>
                 </div>
                 <div class="form-group">
-                    <label for="editMenuImage">Gambar Menu (URL)</label>
-                    <input type="text" id="editMenuImage">
+                    <label>Gambar Menu</label>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                        <input type="file" id="editMenuImageFile" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-small" onclick="document.getElementById('editMenuImageFile').click()">Pilih File</button>
+                        <span id="editMenuImageFileName" style="font-size: 12px; color: #666;">Tidak ada file dipilih</span>
+                    </div>
+                    <input type="hidden" id="editMenuImage">
+                    <img id="editMenuImagePreview" src="" style="max-width: 100px; max-height: 100px; display: none; border-radius: 5px; border: 1px solid #ddd; margin-top: 10px;">
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">Simpan Perubahan</button>
             </form>
@@ -2143,6 +2155,21 @@
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
 
+        function handleImageUpload(event, previewId, fileNameId, inputId) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById(fileNameId).textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64 = e.target.result;
+                    document.getElementById(previewId).src = base64;
+                    document.getElementById(previewId).style.display = 'block';
+                    document.getElementById(inputId).value = base64;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         function showLoading() {
             const overlay = document.getElementById('loading-overlay');
             if(overlay) overlay.style.display = 'flex';
@@ -2195,6 +2222,12 @@
             { id: 8, name: "Emping Melinjo", category: "tambahan", price: 4000, status: "active", image: null, stock: 100 }
         ];
 
+        // Load menu items from local storage if available
+        const storedMenuItems = localStorage.getItem('sotoLamonganMenuItems');
+        if (storedMenuItems) {
+            menuItems = JSON.parse(storedMenuItems);
+        }
+
         // Sales data (will be populated automatically)
         let salesData = [];
         let orderNumber = 1;
@@ -2243,6 +2276,10 @@
             // Encrypt before saving
             const encrypted = encryptData(users);
             localStorage.setItem('sotoLamonganUsers', encrypted);
+        }
+
+        function saveMenuItems() {
+            localStorage.setItem('sotoLamonganMenuItems', JSON.stringify(menuItems));
         }
 
         // =================================================================================
@@ -3034,12 +3071,11 @@
                 // Kosongkan QR code sebelumnya
                 qrCodeContainer.innerHTML = '';
 
-                // Buat QR code baru
-                new QRCode(qrCodeContainer, {
-                    text: `PEMBAYARAN SOTO LAMONGAN: Rp ${total.toLocaleString()}`, // Contoh data QR
-                    width: 200,
-                    height: 200
-                });
+                // Tampilkan gambar QRIS dari file rafa32.jpg
+                const qrImage = document.createElement('img');
+                qrImage.src = 'rafa32.jpg';
+                qrImage.style.width = '100%';
+                qrCodeContainer.appendChild(qrImage);
 
                 qrCodeModal.style.display = 'flex'; // Tampilkan modal
             });
@@ -3055,6 +3091,14 @@
             if (addUserBtn) {
                 addUserBtn.addEventListener('click', showAddUserModal);
             }
+
+            // Image upload listeners
+            document.getElementById('menuImageFile').addEventListener('change', function(e) {
+                handleImageUpload(e, 'menuImagePreview', 'menuImageFileName', 'menuImage');
+            });
+            document.getElementById('editMenuImageFile').addEventListener('change', function(e) {
+                handleImageUpload(e, 'editMenuImagePreview', 'editMenuImageFileName', 'editMenuImage');
+            });
         }
 
         function updateKasirDisplay() {
@@ -3136,7 +3180,8 @@
                     id: item.id,
                     name: item.name,
                     price: item.price,
-                    quantity: 1
+                    quantity: 1,
+                    discount: 0
                 });
             }
 
@@ -3157,7 +3202,13 @@
             const discountPercent = parseInt(cartDiscountInput.value) || 0;
 
             cartKasir.forEach(item => {
-                const itemTotal = item.price * item.quantity;
+                // Ensure discount property exists
+                if (typeof item.discount === 'undefined') item.discount = 0;
+
+                const originalPrice = item.price * item.quantity;
+                const itemDiscountAmount = originalPrice * (item.discount / 100);
+                const itemTotal = originalPrice - itemDiscountAmount;
+                
                 total += itemTotal;
 
                 const cartItemElement = document.createElement('div');
@@ -3165,7 +3216,11 @@
                 cartItemElement.innerHTML = `
                     <div class="keranjang-item-info">
                         <div class="keranjang-item-name">${escapeHtml(item.name)}</div>
-                        <div class="keranjang-item-price">Rp ${item.price.toLocaleString()}</div>
+                        <div class="keranjang-item-price">Rp ${item.price.toLocaleString()} ${item.discount > 0 ? `<small style="color: #e63946;">(-${item.discount}%)</small>` : ''}</div>
+                        <div style="margin-top: 5px; font-size: 12px; display: flex; align-items: center;">
+                            <span style="margin-right: 5px;">Disc %:</span>
+                            <input type="number" class="item-discount-input" data-id="${item.id}" value="${item.discount}" min="0" max="100" style="width: 50px; padding: 2px; border: 1px solid #ddd; border-radius: 3px;">
+                        </div>
                     </div>
                     <div class="keranjang-item-controls">
                         <button class="quantity-btn-kasir decrease-kasir" data-id="${item.id}">-</button>
@@ -3189,6 +3244,22 @@
 
             document.querySelectorAll('.remove-kasir').forEach(button => {
                 button.addEventListener('click', removeItemKasir);
+            });
+            
+            // Add event listeners for item discount inputs
+            document.querySelectorAll('.item-discount-input').forEach(input => {
+                input.addEventListener('change', function(e) {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    let val = parseInt(e.target.value);
+                    if (isNaN(val) || val < 0) val = 0;
+                    if (val > 100) val = 100;
+                    
+                    const item = cartKasir.find(i => i.id === id);
+                    if (item) {
+                        item.discount = val;
+                        updateCartKasirDisplay();
+                    }
+                });
             });
 
             // Calculate Discount
@@ -3306,12 +3377,21 @@
 
             let total = 0;
             cartKasir.forEach(item => {
-                const itemTotal = item.price * item.quantity;
+                // Ensure discount exists
+                if (typeof item.discount === 'undefined') item.discount = 0;
+                
+                const originalPrice = item.price * item.quantity;
+                const itemDiscountAmount = originalPrice * (item.discount / 100);
+                const itemTotal = originalPrice - itemDiscountAmount;
+                
                 total += itemTotal;
 
                 receiptHTML += `
                     <tr>
-                        <td>${escapeHtml(item.name)}</td>
+                        <td>
+                            ${escapeHtml(item.name)}
+                            ${item.discount > 0 ? `<br><small>(Disc ${item.discount}%)</small>` : ''}
+                        </td>
                         <td>${item.quantity}</td>
                         <td>Rp ${itemTotal.toLocaleString()}</td>
                     </tr>
@@ -3426,6 +3506,8 @@
                 status: 'active'
             });
 
+            saveMenuItems();
+
             // Update displays
             updateMenuTable();
             updateKasirDisplay();
@@ -3435,6 +3517,11 @@
             showNotification(`Menu ${name} berhasil ditambahkan`);
             logActivity(`Added Menu: ${name}`);
             addMenuForm.reset();
+            
+            // Reset image upload fields
+            document.getElementById('menuImagePreview').style.display = 'none';
+            document.getElementById('menuImagePreview').src = '';
+            document.getElementById('menuImageFileName').textContent = 'Tidak ada file dipilih';
         });
 
         function editMenuItem(e) {
@@ -3447,6 +3534,18 @@
             document.getElementById('editMenuCategory').value = item.category;
             document.getElementById('editMenuPrice').value = item.price;
             document.getElementById('editMenuImage').value = item.image || '';
+            
+            // Preview Image
+            const preview = document.getElementById('editMenuImagePreview');
+            if (item.image) {
+                preview.src = item.image;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+                preview.src = '';
+            }
+            document.getElementById('editMenuImageFileName').textContent = 'Tidak ada file dipilih';
+            document.getElementById('editMenuImageFile').value = '';
             
             editMenuModal.style.display = 'flex';
         }
@@ -3467,6 +3566,7 @@
                 item.price = price;
                 item.image = image;
                 
+                saveMenuItems();
                 updateMenuTable();
                 updateKasirDisplay();
                 editMenuModal.style.display = 'none';
@@ -3480,6 +3580,7 @@
             const item = menuItems.find(item => item.id === id);
 
             item.status = item.status === 'active' ? 'inactive' : 'active';
+            saveMenuItems();
             updateMenuTable();
             updateKasirDisplay();
 
@@ -4241,6 +4342,7 @@
                     quantity: quantity,
                     reason: escapeHtml(reason)
                 });
+                saveMenuItems();
             }
         }
         
@@ -4355,6 +4457,7 @@
                     });
 
                     menuItems = menuItems.filter(i => i.id !== id);
+                    saveMenuItems();
                     updateInventoryTable();
                     updateMenuTable();
                     updateKasirDisplay();
