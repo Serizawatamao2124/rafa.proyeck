@@ -1343,7 +1343,7 @@
         <div class="hero-content">
             <h2>Soto Lamongan Asli</h2>
             <p class="animate__animated animate__fadeInUp animate__delay-1s">Rasakan kelezatan soto ayam khas Lamongan dengan cita rasa autentik yang menggugah selera</p>
-            <a href="#tentang" class="btn">silahkan masuk</a>
+            <a href="#tentang" class="btn">PROFIL KAMI</a>
         </div>
     </section>
 
@@ -4387,13 +4387,16 @@
         function openShiftModal() {
             const user = users.find(u => u.role === currentUserRole)?.username || 'User';
             document.getElementById('shiftKasirName').value = user;
+            const amountLabel = document.querySelector('label[for="shiftAmount"]');
             
             if (currentShift) {
                 shiftModalTitle.textContent = "Tutup Shift";
                 document.getElementById('shiftSubmitBtn').textContent = "Tutup Shift & Cetak Laporan";
+                if(amountLabel) amountLabel.textContent = "Saldo Kas (Akhir)";
             } else {
                 shiftModalTitle.textContent = "Buka Shift";
                 document.getElementById('shiftSubmitBtn').textContent = "Mulai Shift";
+                if(amountLabel) amountLabel.textContent = "Saldo Kas (Awal)";
             }
             document.getElementById('shiftAmount').value = '';
             shiftModal.style.display = 'flex';
@@ -4401,11 +4404,30 @@
 
         function handleShiftSubmit(e) {
             e.preventDefault();
-            const amount = parseInt(document.getElementById('shiftAmount').value);
+            const amountInput = document.getElementById('shiftAmount').value;
+            let amount = parseInt(amountInput);
             const user = document.getElementById('shiftKasirName').value;
+
+            // Validasi Data Shift (Sesuai System Prompt)
+            if (!user || user.trim() === '') {
+                Swal.fire('Error', 'Nama kasir wajib diisi.', 'error');
+                return;
+            }
+
+            // Validasi Role
+            const allowedRoles = ['kasir', 'supervisor', 'admin'];
+            if (!allowedRoles.includes(currentUserRole)) {
+                 Swal.fire('Error', 'Role tidak memiliki izin membuka shift.', 'error');
+                 return;
+            }
 
             if (currentShift) {
                 // Closing Shift
+                if (amountInput === '' || isNaN(amount) || amount < 0) {
+                    Swal.fire('Error', 'Saldo kas akhir harus berupa angka dan tidak boleh kosong.', 'error');
+                    return;
+                }
+
                 const endTime = new Date();
                 const duration = Math.round((endTime - new Date(currentShift.startTime)) / 60000); // minutes
                 
@@ -4415,15 +4437,35 @@
                 localStorage.removeItem('sotoLamonganCurrentShift');
             } else {
                 // Opening Shift
+                
+                // Validasi Saldo Awal berdasarkan Role
+                if (currentUserRole === 'kasir') {
+                    if (amountInput === '' || isNaN(amount) || amount < 0) {
+                        Swal.fire('Error', 'Saldo kas awal wajib diisi untuk kasir.', 'error');
+                        return;
+                    }
+                } else {
+                    // Admin / Supervisor (Optional)
+                    if (amountInput === '') {
+                        amount = 0;
+                    } else if (isNaN(amount) || amount < 0) {
+                        Swal.fire('Error', 'Saldo kas harus berupa angka positif.', 'error');
+                        return;
+                    }
+                }
+
                 currentShift = {
                     id: Date.now(),
                     kasir: user,
+                    role: currentUserRole,
                     startTime: new Date().toISOString(),
                     startBalance: amount
                 };
                 localStorage.setItem('sotoLamonganCurrentShift', JSON.stringify(currentShift));
                 logActivity(`Shift Opened by ${user}. Start Balance: ${amount}`);
-                Swal.fire('Shift Dibuka', 'Selamat bekerja!', 'success');
+                // Respon Sistem sesuai prompt
+                const roleDisplay = currentUserRole.charAt(0).toUpperCase() + currentUserRole.slice(1);
+                Swal.fire('Berhasil', `Shift berhasil dibuka sebagai ${roleDisplay}. Selamat bekerja.`, 'success');
             }
             
             updateShiftButton();
